@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>崩崩专属</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f0f0f0;
+        }
+
+        .container {
+            width: 50vw;
+            height: 50vw;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+            margin: 0 auto;
+            cursor: grab;
+        }
+
+        .container:active {
+            cursor: grabbing;
+        }
+
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .control-btn:active {
+            background: rgba(0, 0, 0, 1);
+        }
+
+        .image {
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(to right, rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+                url('./db.jpg');
+            background-size: 20px 20px, 20px 20px, cover;
+            background-repeat: repeat, repeat, no-repeat;
+            background-position: top left, top left, center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: center center;
+            image-rendering: pixelated;
+        }
+
+        .route-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .route-point {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #ff4444;
+            border: 3px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .route-point:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            z-index: 10;
+        }
+
+        .route-point.dragging {
+            z-index: 15;
+            transform: translate(-50%, -50%) scale(1.3);
+        }
+
+        .route-line {
+            position: absolute;
+            background: #ff4444;
+            height: 3px;
+            transform-origin: left center;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 250px;
+            z-index: 10;
+        }
+
+        .instructions div {
+            margin-bottom: 5px;
+        }
+
+        .instructions div:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="container">
+        <div class="instructions">
+            <div><strong>路线规划操作：</strong></div>
+            <div>Alt/Option + 点击：添加路径点</div>
+            <div>拖拽点：移动路径点</div>
+            <div>右键点：删除点和重连线</div>
+            <div>右键首/末点：清除所有</div>
+        </div>
+        <div class="zoom-indicator" id="zoomIndicator">100%</div>
+        <div class="controls">
+            <button class="control-btn" id="zoomInBtn">放大</button>
+            <button class="control-btn" id="zoomOutBtn">缩小</button>
+            <button class="control-btn" id="resetBtn">重置</button>
+            <button class="control-btn" id="clearRouteBtn">清除路线</button>
+        </div>
+        <div class="image" id="image"></div>
+        <div class="route-overlay" id="routeOverlay"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('container');
+        const image = document.getElementById('image');
+        const routeOverlay = document.getElementById('routeOverlay');
+        const zoomIndicator = document.getElementById('zoomIndicator');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const clearRouteBtn = document.getElementById('clearRouteBtn');
+
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startTranslateX = 0;
+        let startTranslateY = 0;
+
+        // 路线规划相关变量
+        let routePoints = [];
+        let isDraggingPoint = false;
+        let draggingPointIndex = -1;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // 动态获取容器尺寸
+        function getContainerSize() {
+            const rect = container.getBoundingClientRect();
+            return {
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        function updateTransform() {
+            image.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            routeOverlay.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            zoomIndicator.textContent = Math.round(scale * 100) + '%';
+        }
+
+        function constrainPosition() {
+            const containerSize = getContainerSize();
+            const containerWidth = containerSize.width;
+            const containerHeight = containerSize.height;
+            
+            const scaledWidth = containerWidth * scale;
+            const scaledHeight = containerHeight * scale;
+
+            if (scale <= 1) {
+                translateX = 0;
+                translateY = 0;
+                return;
+            }
+
+            const maxTranslateX = (scaledWidth - containerWidth) / 2;
+            const maxTranslateY = (scaledHeight - containerHeight) / 2;
+
+            translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
+            translateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY));
+        }
+
+        function getMinScale() {
+            return 1;
+        }
+
+        // 获取相对于容器的坐标
+        function getRelativeCoordinates(clientX, clientY) {
+            const rect = container.getBoundingClientRect();
+            const containerSize = getContainerSize();
+            
+            // 相对于容器的坐标
+            const relX = clientX - rect.left;
+            const relY = clientY - rect.top;
+            
+            // 转换为图片坐标系（考虑缩放和平移）
+            const imgX = (relX - translateX - containerSize.width / 2) / scale + containerSize.width / 2;
+            const imgY = (relY - translateY - containerSize.height / 2) / scale + containerSize.height / 2;
+            
+            return { x: imgX, y: imgY };
+        }
+
+        // 添加路径点
+        function addRoutePoint(x, y) {
+            const point = { x, y, id: Date.now() };
+            routePoints.push(point);
+            renderRoute();
+        }
+
+        // 删除路径点
+        function removeRoutePoint(index) {
+            // 如果是第一个或最后一个点，清除所有路线
+            if (index === 0 || index === routePoints.length - 1) {
+                clearRoute();
+                return;
+            }
+            
+            routePoints.splice(index, 1);
+            renderRoute();
+        }
+
+        // 清除所有路线
+        function clearRoute() {
+            routePoints = [];
+            renderRoute();
+        }
+
+        // 渲染路线
+        function renderRoute() {
+            routeOverlay.innerHTML = '';
+            
+            if (routePoints.length === 0) return;
+
+            // 绘制连线
+            for (let i = 0; i < routePoints.length - 1; i++) {
+                const start = routePoints[i];
+                const end = routePoints[i + 1];
+                
+                const line = document.createElement('div');
+                line.className = 'route-line';
+                
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                line.style.left = start.x + 'px';
+                line.style.top = start.y + 'px';
+                line.style.width = length + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                routeOverlay.appendChild(line);
+            }
+
+            // 绘制点
+            routePoints.forEach((point, index) => {
+                const pointEl = document.createElement('div');
+                pointEl.className = 'route-point';
+                pointEl.style.left = point.x + 'px';
+                pointEl.style.top = point.y + 'px';
+                pointEl.textContent = index + 1;
+                pointEl.dataset.index = index;
+                
+                // 点击事件
+                pointEl.addEventListener('mousedown', (e) => {
+                    if (e.button === 0) { // 左键拖拽
+                        e.preventDefault();
+                        e.stopPropagation();
+                        isDraggingPoint = true;
+                        draggingPointIndex = index;
+                        dragStartX = e.clientX;
+                        dragStartY = e.clientY;
+                        pointEl.classList.add('dragging');
+                    }
+                });
+                
+                pointEl.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeRoutePoint(index);
+                });
+                
+                routeOverlay.appendChild(pointEl);
+            });
+        }
+
+        // 检查点击位置是否靠近路径点
+        function getPointNearPosition(x, y, threshold = 15) {
+            for (let i = 0; i < routePoints.length; i++) {
+                const point = routePoints[i];
+                const distance = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+                if (distance <= threshold) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // 鼠标事件处理
+        container.addEventListener('mousedown', (e) => {
+            if (isDraggingPoint) return;
+            
+            if (e.altKey && e.button === 0) {
+                // Alt + 左键添加路径点
+                e.preventDefault();
+                const coords = getRelativeCoordinates(e.clientX, e.clientY);
+                addRoutePoint(coords.x, coords.y);
+                return;
+            }
+            
+            if (e.button === 0) { // 左键拖拽地图
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startTranslateX = translateX;
+                startTranslateY = translateY;
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDraggingPoint && draggingPointIndex >= 0) {
+                // 拖拽路径点
+                const deltaX = e.clientX - dragStartX;
+                const deltaY = e.clientY - dragStartY;
+                
+                const coords = getRelativeCoordinates(
+                    dragStartX + deltaX,
+                    dragStartY + deltaY
+                );
+                
+                routePoints[draggingPointIndex].x = coords.x;
+                routePoints[draggingPointIndex].y = coords.y;
+                
+                renderRoute();
+                return;
+            }
+            
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            translateX = startTranslateX + deltaX;
+            translateY = startTranslateY + deltaY;
+
+            constrainPosition();
+            updateTransform();
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (isDraggingPoint) {
+                isDraggingPoint = false;
+                draggingPointIndex = -1;
+                
+                // 移除拖拽样式
+                const draggingPoint = routeOverlay.querySelector('.route-point.dragging');
+                if (draggingPoint) {
+                    draggingPoint.classList.remove('dragging');
+                }
+                return;
+            }
+            
+            isDragging = false;
+        });
+
+        // 右键菜单禁用
+        container.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // 滚轮缩放
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const deltaScale = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = scale * deltaScale;
+
+            const minScale = getMinScale();
+            const maxScale = 5;
+
+            if (newScale < minScale || newScale > maxScale) return;
+
+            const scaleRatio = newScale / scale;
+
+            translateX = (translateX - (e.clientX - centerX)) * scaleRatio + (e.clientX - centerX);
+            translateY = (translateY - (e.clientY - centerY)) * scaleRatio + (e.clientY - centerY);
+
+            scale = newScale;
+            constrainPosition();
+            updateTransform();
+        });
+
+        // 触摸事件支持
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                startTranslateX = translateX;
+                startTranslateY = translateY;
+            }
+            e.preventDefault();
+        });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+
+            const deltaX = e.touches[0].clientX - touchStartX;
+            const deltaY = e.touches[0].clientY - touchStartY;
+
+            translateX = startTranslateX + deltaX;
+            translateY = startTranslateY + deltaY;
+
+            constrainPosition();
+            updateTransform();
+            e.preventDefault();
+        });
+
+        container.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // 窗口大小改变
+        window.addEventListener('resize', () => {
+            constrainPosition();
+            updateTransform();
+        });
+
+        // 控制按钮事件
+        zoomInBtn.addEventListener('click', () => {
+            const newScale = Math.min(5, scale * 1.2);
+            if (newScale !== scale) {
+                scale = newScale;
+                constrainPosition();
+                updateTransform();
+            }
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            const minScale = getMinScale();
+            const newScale = Math.max(minScale, scale / 1.2);
+            if (newScale !== scale) {
+                scale = newScale;
+                constrainPosition();
+                updateTransform();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        });
+
+        clearRouteBtn.addEventListener('click', () => {
+            clearRoute();
+        });
+
+        // 初始化
+        updateTransform();
+    </script>
+</body>
+
+</html>
