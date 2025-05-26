@@ -206,7 +206,7 @@ container.addEventListener('mousedown', (e) => {
         startDrawing(coords.x, coords.y);
         return;
     }
-    
+
     // 临时拖拽模式或普通拖拽模式下的地图拖拽
     if ((isTemporaryPanMode || !isDrawMode) && e.button === 0 && !e.altKey && !isDraggingPoint && !isDraggingTeam) {
         isDragging = true;
@@ -217,7 +217,7 @@ container.addEventListener('mousedown', (e) => {
         e.preventDefault();
         return;
     }
-    
+
     // 画笔模式下阻止其他操作（除了临时拖拽模式）
     if (isDrawMode && !isTemporaryPanMode) {
         e.preventDefault();
@@ -423,27 +423,28 @@ updateTransform();
 // 游戏数据 - 你可以替换为从JSON文件加载
 const gameData = {
     characters: [
-        { id: 'diluc', name: '迪卢克', element: '火' },
-        { id: 'venti', name: '温迪', element: '风' },
-        { id: 'qiqi', name: '七七', element: '冰' },
-        { id: 'keqing', name: '刻晴', element: '雷' },
-        { id: 'mona', name: '莫娜', element: '水' },
-        { id: 'jean', name: '琴', element: '风' },
-        { id: 'albedo', name: '阿贝多', element: '岩' },
-        { id: 'ganyu', name: '甘雨', element: '冰' },
-        { id: 'xiao', name: '魈', element: '风' },
-        { id: 'zhongli', name: '钟离', element: '岩' },
-        { id: 'childe', name: '达达利亚', element: '水' },
-        { id: 'hutao', name: '胡桃', element: '火' },
-        { id: 'kazuha', name: '枫原万叶', element: '风' },
-        { id: 'ayaka', name: '神里绫华', element: '冰' },
-        { id: 'yoimiya', name: '宵宫', element: '火' },
-        { id: 'raiden', name: '雷电将军', element: '雷' },
-        { id: 'kokomi', name: '珊瑚宫心海', element: '水' },
-        { id: 'itto', name: '荒泷一斗', element: '岩' },
-        { id: 'yae', name: '八重神子', element: '雷' },
-        { id: 'ayato', name: '神里绫人', element: '水' }
+        { id: 'diluc', name: '露娜', element: '火' },
+        { id: 'venti', name: '威龙', element: '风' },
+        { id: 'qiqi', name: '骇爪', element: '冰' },
+        { id: 'keqing', name: '蜂医', element: '雷' },
+        { id: 'mona', name: '牧羊人', element: '水' },
+        { id: 'jean', name: '红狼', element: '风' },
+        { id: 'albedo', name: '乌鲁鲁', element: '岩' },
+        { id: 'ganyu', name: '蛊', element: '冰' },
+        { id: 'xiao', name: '深蓝', element: '风' }
     ],
+    charactersImages: {
+        "威龙": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000025.png",
+        "骇爪": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000026.png",
+        "蜂医": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000027.png",
+        "露娜": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000028.png",
+        "牧羊人": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000029.png",
+        "红狼": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000030.png",
+        "乌鲁鲁": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000035.png",
+        "蛊": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000036.png",
+        "深蓝": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000037.png",
+        "无名": "https://playerhub.df.qq.com/playerhub/60004/object/p_88000000038.png"
+    },
     weapons: [
         { id: 'skyward_blade', name: '天空之刃', type: '单手剑' },
         { id: 'aquila_favonia', name: '风鹰剑', type: '单手剑' },
@@ -549,23 +550,23 @@ function editTeamName(teamBox, index) {
     input.className = 'team-name-input';
     input.value = teams[index].name;
     input.maxLength = 10;
-    
+
     teamBox.innerHTML = '';
     teamBox.appendChild(input);
     input.focus();
     input.select();
-    
+
     function finishEdit() {
         const newName = input.value.trim() || `队伍${index + 1}`;
         teams[index].name = newName;
         teamBox.textContent = newName;
-        
+
         // 更新详情面板
         if (activeTeamIndex === index) {
             document.getElementById('teamNameInput').value = newName;
         }
     }
-    
+
     input.addEventListener('blur', finishEdit);
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -578,49 +579,49 @@ function editTeamName(teamBox, index) {
 function startDragTeam(e, index) {
     isDraggingTeam = true;
     draggingTeamIndex = index;
-    
+
     const teamBox = document.querySelector(`[data-index="${index}"]`);
     teamBox.classList.add('dragging');
-    
+
     // 获取在当前缩放和平移状态下的相对坐标
     const coords = getRelativeCoordinates(e.clientX, e.clientY);
     const startX = coords.x - teams[index].x;
     const startY = coords.y - teams[index].y;
-    
+
     function handleDrag(e) {
         if (!isDraggingTeam) return;
-        
+
         // 获取当前鼠标在图片坐标系中的位置
         const coords = getRelativeCoordinates(e.clientX, e.clientY);
         let newX = coords.x - startX;
         let newY = coords.y - startY;
-        
+
         // 获取容器尺寸来限制边界
         const containerSize = getContainerSize();
-        
+
         // 限制在图片区域内（考虑队伍框尺寸）
         newX = Math.max(25, Math.min(containerSize.width - 25, newX));
         newY = Math.max(15, Math.min(containerSize.height - 15, newY));
-        
+
         teams[draggingTeamIndex].x = newX;
         teams[draggingTeamIndex].y = newY;
-        
+
         teamBox.style.left = newX + 'px';
         teamBox.style.top = newY + 'px';
     }
-    
+
     function endDrag() {
         isDraggingTeam = false;
         teamBox.classList.remove('dragging');
         document.removeEventListener('mousemove', handleDrag);
         document.removeEventListener('mouseup', endDrag);
-        
+
         // 延迟重置，避免立即触发点击事件
         setTimeout(() => {
             draggingTeamIndex = -1;
         }, 100);
     }
-    
+
     document.addEventListener('mousemove', handleDrag);
     document.addEventListener('mouseup', endDrag);
 }
@@ -631,11 +632,11 @@ function selectTeam(index) {
     document.querySelectorAll('.team-box').forEach(box => {
         box.classList.remove('active');
     });
-    
+
     // 高亮当前队伍
     const teamBox = document.querySelector(`[data-index="${index}"]`);
     teamBox.classList.add('active');
-    
+
     activeTeamIndex = index;
     showTeamDetails(index);
 }
@@ -644,13 +645,13 @@ function selectTeam(index) {
 function showTeamDetails(index) {
     const panel = document.getElementById('teamDetailsPanel');
     const team = teams[index];
-    
+
     // 更新队伍名称
     document.getElementById('teamNameInput').value = team.name;
-    
+
     // 渲染角色槽
     renderCharacterSlots(team.characters);
-    
+
     // 显示面板
     panel.classList.add('active');
 }
@@ -659,11 +660,11 @@ function showTeamDetails(index) {
 function renderCharacterSlots(characters) {
     const slotsContainer = document.getElementById('characterSlots');
     slotsContainer.innerHTML = '';
-    
+
     characters.forEach((char, index) => {
         const slot = document.createElement('div');
         slot.className = 'character-slot';
-        
+
         slot.innerHTML = `
             <div class="slot-header">角色 ${index + 1}</div>
             <div class="character-info">
@@ -683,7 +684,7 @@ function renderCharacterSlots(characters) {
                 ` : ''}
             </div>
         `;
-        
+
         slotsContainer.appendChild(slot);
     });
 }
@@ -691,23 +692,23 @@ function renderCharacterSlots(characters) {
 // 打开角色选择器
 function openCharacterSelector(slotIndex) {
     if (activeTeamIndex === -1) return;
-    
+
     currentSelector = { type: 'character', teamIndex: activeTeamIndex, slotIndex };
-    
+
     const modal = document.getElementById('selectorModal');
     const title = document.getElementById('selectorTitle');
     const search = document.getElementById('selectorSearch');
     const grid = document.getElementById('selectorGrid');
-    
+
     title.textContent = '选择角色';
     search.value = '';
     search.placeholder = '搜索角色名称...';
-    
+
     // 获取当前队伍已选择的角色
     const usedCharacters = teams[activeTeamIndex].characters
         .map(c => c.character?.id)
         .filter(id => id);
-    
+
     renderSelectorItems(gameData.characters, usedCharacters, slotIndex);
     modal.classList.add('active');
 }
@@ -715,17 +716,17 @@ function openCharacterSelector(slotIndex) {
 // 打开武器选择器
 function openWeaponSelector(slotIndex) {
     if (activeTeamIndex === -1) return;
-    
+
     currentSelector = { type: 'weapon', teamIndex: activeTeamIndex, slotIndex };
-    
+
     const modal = document.getElementById('selectorModal');
     const title = document.getElementById('selectorTitle');
     const search = document.getElementById('selectorSearch');
-    
+
     title.textContent = '选择武器';
     search.value = '';
     search.placeholder = '搜索武器名称...';
-    
+
     renderSelectorItems(gameData.weapons, [], slotIndex);
     modal.classList.add('active');
 }
@@ -734,43 +735,43 @@ function openWeaponSelector(slotIndex) {
 function renderSelectorItems(items, excludeIds = [], currentSlotIndex = -1) {
     const grid = document.getElementById('selectorGrid');
     const search = document.getElementById('selectorSearch');
-    
+
     function render() {
         const searchTerm = search.value.toLowerCase();
-        const filteredItems = items.filter(item => 
+        const filteredItems = items.filter(item =>
             item.name.toLowerCase().includes(searchTerm)
         );
-        
+
         grid.innerHTML = '';
-        
+
         filteredItems.forEach(item => {
             const itemEl = document.createElement('div');
             itemEl.className = 'selector-item';
-            
+
             // 检查是否已被使用（除了当前槽位）
-            const isUsed = excludeIds.includes(item.id) && 
-                          teams[currentSelector.teamIndex].characters[currentSelector.slotIndex].character?.id !== item.id;
-            
+            const isUsed = excludeIds.includes(item.id) &&
+                teams[currentSelector.teamIndex].characters[currentSelector.slotIndex].character?.id !== item.id;
+
             if (isUsed) {
                 itemEl.classList.add('disabled');
             }
-            
+
             itemEl.innerHTML = `
                 <div class="item-name">${item.name}</div>
                 <div class="item-type">${item.element || item.type}</div>
                 ${isUsed ? '<div style="color: red; font-size: 11px;">已在队伍中</div>' : ''}
             `;
-            
+
             if (!isUsed) {
                 itemEl.addEventListener('click', () => {
                     selectItem(item);
                 });
             }
-            
+
             grid.appendChild(itemEl);
         });
     }
-    
+
     render();
     search.addEventListener('input', render);
 }
@@ -778,7 +779,7 @@ function renderSelectorItems(items, excludeIds = [], currentSlotIndex = -1) {
 // 选择项目
 function selectItem(item) {
     const { type, teamIndex, slotIndex } = currentSelector;
-    
+
     if (type === 'character') {
         teams[teamIndex].characters[slotIndex].character = item;
         // 如果更换角色，清空武器
@@ -788,10 +789,10 @@ function selectItem(item) {
     } else if (type === 'weapon') {
         teams[teamIndex].characters[slotIndex].weapon = item;
     }
-    
+
     // 关闭选择器
     document.getElementById('selectorModal').classList.remove('active');
-    
+
     // 更新显示
     renderCharacterSlots(teams[teamIndex].characters);
 }
@@ -814,7 +815,7 @@ document.getElementById('teamNameInput').addEventListener('input', (e) => {
     if (activeTeamIndex !== -1) {
         const newName = e.target.value.trim() || `队伍${activeTeamIndex + 1}`;
         teams[activeTeamIndex].name = newName;
-        
+
         // 更新队伍框显示
         const teamBox = document.querySelector(`[data-index="${activeTeamIndex}"]`);
         if (teamBox) {
@@ -838,7 +839,7 @@ initializeTeams();
 function toggleDrawMode() {
     isDrawMode = !isDrawMode;
     drawToggleBtn.classList.toggle('active', isDrawMode);
-    
+
     if (isDrawMode) {
         container.classList.add('draw-mode');
         container.style.cursor = 'crosshair';
@@ -860,11 +861,11 @@ function setDrawColor(color) {
 
 function startDrawing(x, y) {
     if (!isDrawMode) return;
-    
+
     isDrawing = true;
     drawStartX = x;
     drawStartY = y;
-    
+
     currentDrawLine = {
         id: Date.now(),
         color: currentDrawColor,
@@ -874,19 +875,19 @@ function startDrawing(x, y) {
 
 function continueDrawing(x, y) {
     if (!isDrawing || !currentDrawLine) return;
-    
+
     currentDrawLine.points.push({ x, y });
     renderDrawLines();
 }
 
 function endDrawing() {
     if (!isDrawing || !currentDrawLine) return;
-    
+
     // 只有当线条有足够的点时才保存
     if (currentDrawLine.points.length > 1) {
         drawLines.push(currentDrawLine);
     }
-    
+
     isDrawing = false;
     currentDrawLine = null;
 }
@@ -907,12 +908,12 @@ function clearAllDrawLines() {
 
 function renderDrawLines() {
     drawOverlay.innerHTML = '';
-    
+
     // 渲染已保存的线条
     drawLines.forEach(line => {
         renderSingleDrawLine(line);
     });
-    
+
     // 渲染当前正在绘制的线条
     if (currentDrawLine && currentDrawLine.points.length > 1) {
         renderSingleDrawLine(currentDrawLine);
@@ -923,29 +924,29 @@ function renderSingleDrawLine(line) {
     for (let i = 0; i < line.points.length - 1; i++) {
         const start = line.points[i];
         const end = line.points[i + 1];
-        
+
         const lineEl = document.createElement('div');
         lineEl.className = 'draw-line';
         lineEl.style.backgroundColor = line.color;
-        
+
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const length = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        
+
         lineEl.style.left = start.x + 'px';
         lineEl.style.top = start.y + 'px';
         lineEl.style.width = length + 'px';
         lineEl.style.transform = `rotate(${angle}deg)`;
         lineEl.dataset.lineId = line.id;
-        
+
         // 右键删除线条
         lineEl.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             removeDrawLine(line.id);
         });
-        
+
         drawOverlay.appendChild(lineEl);
     }
 }
@@ -968,17 +969,17 @@ clearDrawBtn.addEventListener('click', clearAllDrawLines);
 document.addEventListener('keydown', (e) => {
     // 只有在画笔激活状态下才响应空格键
     if (!isDrawMode) return;
-    
+
     if (e.code === 'Space' && !isSpacePressed) {
         e.preventDefault();
         isSpacePressed = true;
         isTemporaryPanMode = true;
-        
+
         // 如果正在绘制，结束当前绘制
         if (isDrawing) {
             endDrawing();
         }
-        
+
         // 改变光标为小手
         container.classList.remove('draw-mode');
         container.style.cursor = 'grab';
@@ -987,12 +988,12 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     if (!isDrawMode) return;
-    
+
     if (e.code === 'Space' && isSpacePressed) {
         e.preventDefault();
         isSpacePressed = false;
         isTemporaryPanMode = false;
-        
+
         // 恢复画笔光标
         container.classList.add('draw-mode');
         container.style.cursor = 'crosshair';
