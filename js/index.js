@@ -477,6 +477,7 @@ function initializeTeams() {
             name: `队伍${i + 1}`,
             x: 50 + (i % 4) * 100,
             y: 50 + Math.floor(i / 4) * 80,
+            scale: 1, // 新增：队伍框缩放比例
             characters: [
                 { name: '', character: null, weapon: null },
                 { name: '', character: null, weapon: null },
@@ -497,6 +498,9 @@ function renderTeams() {
         teamBox.className = 'team-box';
         teamBox.style.left = team.x + 'px';
         teamBox.style.top = team.y + 'px';
+        // 应用缩放
+        teamBox.style.transform = `scale(${team.scale})`;
+        teamBox.style.transformOrigin = 'top left'; // 设置缩放原点
         teamBox.dataset.index = index;
 
         // 创建队伍名称
@@ -516,15 +520,11 @@ function renderTeams() {
             slot.dataset.slotIndex = charIndex;
 
             if (char.character) {
-                // 有角色时设置背景图片
                 const imageName = char.character.name;
-                console.log(imageName);
-                
                 if (gameData.charactersImages[imageName]) {
                     slot.style.backgroundImage = `url('${gameData.charactersImages[imageName]}')`;
                 }
 
-                // 创建信息覆盖层
                 const infoOverlay = document.createElement('div');
                 infoOverlay.className = 'character-info-overlay';
                 
@@ -543,7 +543,6 @@ function renderTeams() {
                 slot.classList.add('empty');
             }
 
-            // 点击槽位打开角色选择器
             slot.addEventListener('click', (e) => {
                 e.stopPropagation();
                 selectTeamForSlot(index, charIndex);
@@ -552,8 +551,54 @@ function renderTeams() {
             characterGrid.appendChild(slot);
         });
 
+        // 创建缩放控制器
+        const scaleControls = document.createElement('div');
+        scaleControls.className = 'scale-controls';
+        scaleControls.innerHTML = `
+            <button class="scale-btn scale-down" data-team="${index}" title="缩小">-</button>
+            <span class="scale-display">${Math.round(team.scale * 100)}%</span>
+            <button class="scale-btn scale-up" data-team="${index}" title="放大">+</button>
+        `;
+
         teamBox.appendChild(teamName);
         teamBox.appendChild(characterGrid);
+        teamBox.appendChild(scaleControls);
+
+        // 缩放按钮事件
+        const scaleUpBtn = scaleControls.querySelector('.scale-up');
+        const scaleDownBtn = scaleControls.querySelector('.scale-down');
+        const scaleDisplay = scaleControls.querySelector('.scale-display');
+
+        scaleUpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            scaleTeam(index, 0.1);
+        });
+
+        scaleDownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            scaleTeam(index, -0.1);
+        });
+
+        // 双击队伍框整体进行快速缩放
+        teamBox.addEventListener('dblclick', (e) => {
+            // 如果双击的不是队伍名称区域，则进行缩放切换
+            if (!e.target.classList.contains('team-name')) {
+                e.stopPropagation();
+                const currentScale = team.scale;
+                const newScale = currentScale === 1 ? 1.5 : currentScale === 1.5 ? 0.7 : 1;
+                setTeamScale(index, newScale);
+            }
+        });
+
+        // 鼠标滚轮缩放（需要按住Ctrl键）
+        teamBox.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                scaleTeam(index, delta);
+            }
+        });
 
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
@@ -596,6 +641,26 @@ function renderTeams() {
 
         teamBoxes.appendChild(teamBox);
     });
+}
+
+function scaleTeam(teamIndex, deltaScale) {
+    const newScale = Math.max(0.3, Math.min(3, teams[teamIndex].scale + deltaScale));
+    setTeamScale(teamIndex, newScale);
+}
+
+function setTeamScale(teamIndex, scale) {
+    teams[teamIndex].scale = scale;
+    
+    const teamBox = document.querySelector(`[data-index="${teamIndex}"]`);
+    if (teamBox) {
+        teamBox.style.transform = `scale(${scale})`;
+        
+        // 更新缩放显示
+        const scaleDisplay = teamBox.querySelector('.scale-display');
+        if (scaleDisplay) {
+            scaleDisplay.textContent = Math.round(scale * 100) + '%';
+        }
+    }
 }
 
 function selectTeamForSlot(teamIndex, slotIndex) {
@@ -658,23 +723,25 @@ function startDragTeam(e, index) {
 
     // 获取在当前缩放和平移状态下的相对坐标
     const coords = getRelativeCoordinates(e.clientX, e.clientY);
-    const startX = coords.x - teams[index].x;
-    const startY = coords.y - teams[index].y;
+    const team = teams[index];
+    const startX = coords.x - team.x;
+    const startY = coords.y - team.y;
 
     function handleDrag(e) {
         if (!isDraggingTeam) return;
 
-        // 获取当前鼠标在图片坐标系中的位置
         const coords = getRelativeCoordinates(e.clientX, e.clientY);
         let newX = coords.x - startX;
         let newY = coords.y - startY;
 
-        // 获取容器尺寸来限制边界
         const containerSize = getContainerSize();
+        
+        // 考虑缩放因子调整边界
+        const scaledWidth = 50 * team.scale;  // 队伍框宽度 * 缩放比例
+        const scaledHeight = 30 * team.scale; // 队伍框高度 * 缩放比例
 
-        // 限制在图片区域内（考虑队伍框尺寸）
-        newX = Math.max(25, Math.min(containerSize.width - 25, newX));
-        newY = Math.max(15, Math.min(containerSize.height - 15, newY));
+        newX = Math.max(scaledWidth/2, Math.min(containerSize.width - scaledWidth/2, newX));
+        newY = Math.max(scaledHeight/2, Math.min(containerSize.height - scaledHeight/2, newY));
 
         teams[draggingTeamIndex].x = newX;
         teams[draggingTeamIndex].y = newY;
@@ -689,7 +756,6 @@ function startDragTeam(e, index) {
         document.removeEventListener('mousemove', handleDrag);
         document.removeEventListener('mouseup', endDrag);
 
-        // 延迟重置，避免立即触发点击事件
         setTimeout(() => {
             draggingTeamIndex = -1;
         }, 100);
@@ -714,7 +780,11 @@ function selectTeam(index) {
     showTeamDetails(index);
 }
 
+
+// 1. 修改 selectItem 函数，不要重新渲染整个队伍框
 function selectItem(item) {
+    console.log('111');
+    
     const { type, teamIndex, slotIndex } = currentSelector;
 
     if (type === 'character') {
@@ -735,8 +805,61 @@ function selectItem(item) {
         renderCharacterSlots(teams[teamIndex].characters);
     }
     
-    // 新增：更新队伍框显示
-    renderTeams();
+    // 修改：只更新特定的队伍框，而不是重新渲染所有
+    updateTeamBox(teamIndex);
+}
+
+function updateTeamBox(teamIndex) {
+    const teamBox = document.querySelector(`[data-index="${teamIndex}"]`);
+    if (!teamBox) return;
+
+    const team = teams[teamIndex];
+    const characterGrid = teamBox.querySelector('.character-grid');
+    
+    // 清空并重新创建角色格子
+    characterGrid.innerHTML = '';
+    
+    team.characters.forEach((char, charIndex) => {
+        const slot = document.createElement('div');
+        slot.className = 'character-mini-slot';
+        slot.dataset.teamIndex = teamIndex;
+        slot.dataset.slotIndex = charIndex;
+
+        if (char.character) {
+            const imageName = char.character.name;
+            
+            if (gameData.charactersImages[imageName]) {
+                slot.style.backgroundImage = `url('${gameData.charactersImages[imageName]}')`;
+            }
+
+            const infoOverlay = document.createElement('div');
+            infoOverlay.className = 'character-info-overlay';
+            
+            const charName = document.createElement('div');
+            charName.className = 'char-name';
+            charName.textContent = char.character.name;
+            
+            const weaponName = document.createElement('div');
+            weaponName.className = 'weapon-name';
+            weaponName.textContent = char.weapon ? char.weapon.name : '无武器';
+            
+            infoOverlay.appendChild(charName);
+            infoOverlay.appendChild(weaponName);
+            slot.appendChild(infoOverlay);
+        } else {
+            slot.classList.add('empty');
+        }
+
+        slot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectTeamForSlot(teamIndex, charIndex);
+        });
+
+        characterGrid.appendChild(slot);
+    });
+    
+    // 确保缩放比例保持不变
+    teamBox.style.transform = `scale(${team.scale})`;
 }
 
 // 显示队伍详情
@@ -875,25 +998,25 @@ function renderSelectorItems(items, excludeIds = [], currentSlotIndex = -1) {
 }
 
 // 选择项目
-function selectItem(item) {
-    const { type, teamIndex, slotIndex } = currentSelector;
+// function selectItem(item) {
+//     const { type, teamIndex, slotIndex } = currentSelector;
 
-    if (type === 'character') {
-        teams[teamIndex].characters[slotIndex].character = item;
-        // 如果更换角色，清空武器
-        if (teams[teamIndex].characters[slotIndex].weapon) {
-            teams[teamIndex].characters[slotIndex].weapon = null;
-        }
-    } else if (type === 'weapon') {
-        teams[teamIndex].characters[slotIndex].weapon = item;
-    }
+//     if (type === 'character') {
+//         teams[teamIndex].characters[slotIndex].character = item;
+//         // 如果更换角色，清空武器
+//         if (teams[teamIndex].characters[slotIndex].weapon) {
+//             teams[teamIndex].characters[slotIndex].weapon = null;
+//         }
+//     } else if (type === 'weapon') {
+//         teams[teamIndex].characters[slotIndex].weapon = item;
+//     }
 
-    // 关闭选择器
-    document.getElementById('selectorModal').classList.remove('active');
+//     // 关闭选择器
+//     document.getElementById('selectorModal').classList.remove('active');
 
-    // 更新显示
-    renderCharacterSlots(teams[teamIndex].characters);
-}
+//     // 更新显示
+//     renderCharacterSlots(teams[teamIndex].characters);
+// }
 
 // 事件监听器
 document.getElementById('closePanelBtn').addEventListener('click', () => {
@@ -914,10 +1037,11 @@ document.getElementById('teamNameInput').addEventListener('input', (e) => {
         const newName = e.target.value.trim() || `队伍${activeTeamIndex + 1}`;
         teams[activeTeamIndex].name = newName;
 
-        // 更新队伍框显示
+        // 修改：正确更新队伍框的名称显示
         const teamBox = document.querySelector(`[data-index="${activeTeamIndex}"]`);
         if (teamBox) {
-            teamBox.textContent = newName;
+            const teamNameEl = teamBox.querySelector('.team-name');
+            teamNameEl.textContent = newName;
         }
     }
 });

@@ -269,28 +269,7 @@ body {
     font-weight: bold;
 }
 
-/* 角色信息覆盖层 */
-.character-info-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    color: white;
-    padding: 2px;
-    font-size: 8px;
-    text-align: center;
-    line-height: 1.1;
-}
-
-.character-info-overlay .char-name {
-    font-weight: bold;
-    margin-bottom: 1px;
-}
-
-.character-info-overlay .weapon-name {
-    opacity: 0.9;
-}/* 修改队伍框样式 - 替换原有的 .team-box 样式 */
+/* 修改队伍框样式 - 替换原有的 .team-box 样式 */
 .team-box {
     position: absolute;
     width: 80px;
@@ -385,24 +364,19 @@ body {
 /* 角色信息覆盖层 */
 .character-info-overlay {
     position: absolute;
-    bottom: 0;
     left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    top: 0;
+    /* background: linear-gradient(transparent, rgba(0, 0, 0, 0.8)); */
     color: white;
-    padding: 2px;
-    font-size: 8px;
-    text-align: center;
-    line-height: 1.1;
 }
 
 .character-info-overlay .char-name {
-    font-weight: bold;
-    margin-bottom: 1px;
+    font-size: 8px;
 }
 
 .character-info-overlay .weapon-name {
-    opacity: 0.9;
+    color: white;
+    font-size: 8px;
 }
 
 .team-name-input {
@@ -755,4 +729,63 @@ body {
 
 .container.draw-mode:active {
     cursor: crosshair !important;
+}
+
+/* 缩放控制器样式 */
+.scale-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 2px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.team-box:hover .scale-controls {
+    opacity: 1;
+}
+
+.scale-btn {
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.scale-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.scale-display {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    min-width: 24px;
+    text-align: center;
+}
+
+/* 队伍框缩放过渡动画 */
+.team-box {
+    transition: transform 0.15s ease-out;
+    transform-origin: top left;
+}
+
+/* 防止缩放时内容溢出 */
+.team-box {
+    overflow: visible;
+}
+
+/* 调整拖拽时的样式，考虑缩放 */
+.team-box.dragging {
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
