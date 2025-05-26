@@ -13,6 +13,10 @@ const drawToggleBtn = document.getElementById('drawToggleBtn');
 const colorPicker = document.getElementById('colorPicker');
 const clearDrawBtn = document.getElementById('clearDrawBtn');
 
+// 在变量声明部分添加
+let isSpacePressed = false;
+let isTemporaryPanMode = false;
+
 // 画笔相关变量
 let isDrawMode = false;
 let isDrawing = false;
@@ -194,8 +198,8 @@ function getPointNearPosition(x, y, threshold = 15) {
 
 // 鼠标事件处理
 container.addEventListener('mousedown', (e) => {
-    // 画笔模式处理
-    if (isDrawMode && e.button === 0) {
+    // 画笔模式处理（但排除临时拖拽模式）
+    if (isDrawMode && !isTemporaryPanMode && e.button === 0) {
         e.preventDefault();
         e.stopPropagation();
         const coords = getRelativeCoordinates(e.clientX, e.clientY);
@@ -203,8 +207,19 @@ container.addEventListener('mousedown', (e) => {
         return;
     }
     
-    // 画笔模式下阻止其他操作
-    if (isDrawMode) {
+    // 临时拖拽模式或普通拖拽模式下的地图拖拽
+    if ((isTemporaryPanMode || !isDrawMode) && e.button === 0 && !e.altKey && !isDraggingPoint && !isDraggingTeam) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startTranslateX = translateX;
+        startTranslateY = translateY;
+        e.preventDefault();
+        return;
+    }
+    
+    // 画笔模式下阻止其他操作（除了临时拖拽模式）
+    if (isDrawMode && !isTemporaryPanMode) {
         e.preventDefault();
         return;
     }
@@ -230,6 +245,13 @@ container.addEventListener('mousedown', (e) => {
 });
 
 document.addEventListener('mousemove', (e) => {
+    // 画笔绘制处理（但排除临时拖拽模式）
+    if (isDrawing && !isTemporaryPanMode) {
+        const coords = getRelativeCoordinates(e.clientX, e.clientY);
+        continueDrawing(coords.x, coords.y);
+        return;
+    }
+
     // 画笔绘制处理
     if (isDrawing) {
         const coords = getRelativeCoordinates(e.clientX, e.clientY);
@@ -267,6 +289,11 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseup', (e) => {
+    // 画笔结束处理（但排除临时拖拽模式）
+    if (isDrawing && !isTemporaryPanMode) {
+        endDrawing();
+        return;
+    }
     // 画笔结束处理
     if (isDrawing) {
         endDrawing();
@@ -811,7 +838,17 @@ initializeTeams();
 function toggleDrawMode() {
     isDrawMode = !isDrawMode;
     drawToggleBtn.classList.toggle('active', isDrawMode);
-    container.classList.toggle('draw-mode', isDrawMode);
+    
+    if (isDrawMode) {
+        container.classList.add('draw-mode');
+        container.style.cursor = 'crosshair';
+    } else {
+        container.classList.remove('draw-mode');
+        container.style.cursor = '';
+        // 关闭画笔时重置临时状态
+        isSpacePressed = false;
+        isTemporaryPanMode = false;
+    }
 }
 
 function setDrawColor(color) {
@@ -913,44 +950,6 @@ function renderSingleDrawLine(line) {
     }
 }
 
-// 需要修改现有的container mousedown事件处理器
-// 将原有的container mousedown事件处理器修改为：
-/*
-原有的 container.addEventListener('mousedown', (e) => { ... }) 需要在开头添加：
-
-if (isDrawMode && e.button === 0) {
-    e.preventDefault();
-    e.stopPropagation();
-    const coords = getRelativeCoordinates(e.clientX, e.clientY);
-    startDrawing(coords.x, coords.y);
-    return;
-}
-
-if (isDrawMode) {
-    e.preventDefault();
-    return;
-}
-*/
-
-// 需要修改现有的document mousemove事件处理器
-// 将原有的 document.addEventListener('mousemove', (e) => { ... }) 需要在开头添加：
-/*
-if (isDrawing) {
-    const coords = getRelativeCoordinates(e.clientX, e.clientY);
-    continueDrawing(coords.x, coords.y);
-    return;
-}
-*/
-
-// 需要修改现有的document mouseup事件处理器  
-// 将原有的 document.addEventListener('mouseup', (e) => { ... }) 需要在开头添加：
-/*
-if (isDrawing) {
-    endDrawing();
-    return;
-}
-*/
-
 // 画笔工具栏事件监听器
 drawToggleBtn.addEventListener('click', toggleDrawMode);
 
@@ -961,3 +960,51 @@ colorPicker.addEventListener('click', (e) => {
 });
 
 clearDrawBtn.addEventListener('click', clearAllDrawLines);
+
+
+
+
+// 空格键事件处理
+document.addEventListener('keydown', (e) => {
+    // 只有在画笔激活状态下才响应空格键
+    if (!isDrawMode) return;
+    
+    if (e.code === 'Space' && !isSpacePressed) {
+        e.preventDefault();
+        isSpacePressed = true;
+        isTemporaryPanMode = true;
+        
+        // 如果正在绘制，结束当前绘制
+        if (isDrawing) {
+            endDrawing();
+        }
+        
+        // 改变光标为小手
+        container.classList.remove('draw-mode');
+        container.style.cursor = 'grab';
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (!isDrawMode) return;
+    
+    if (e.code === 'Space' && isSpacePressed) {
+        e.preventDefault();
+        isSpacePressed = false;
+        isTemporaryPanMode = false;
+        
+        // 恢复画笔光标
+        container.classList.add('draw-mode');
+        container.style.cursor = 'crosshair';
+    }
+});
+
+// 防止窗口失去焦点时空格键状态异常
+window.addEventListener('blur', () => {
+    if (isSpacePressed && isDrawMode) {
+        isSpacePressed = false;
+        isTemporaryPanMode = false;
+        container.classList.add('draw-mode');
+        container.style.cursor = 'crosshair';
+    }
+});
