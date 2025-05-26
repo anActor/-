@@ -177,34 +177,28 @@ body {
 }
 
 /* 队伍框样式 */
+/* 修改队伍框样式 - 替换原有的 .team-box 样式 */
 .team-box {
     position: absolute;
-    width: 50px;
-    height: 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.9);
     border: 2px solid white;
     border-radius: 8px;
     transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 12px;
     cursor: move;
     user-select: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
     z-index: 20;
-    text-align: center;
-    line-height: 1.2;
     pointer-events: auto;
-    /* transform-origin: center center; */
-    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .team-box:hover {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
@@ -214,8 +208,201 @@ body {
 }
 
 .team-box.dragging {
-    transform: translate(-50%, -50%) scale(1.3);
+    transform: translate(-50%, -50%) scale(1.2);
     z-index: 25;
+}
+
+/* 队伍名称 */
+.team-name {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    text-align: center;
+    padding: 2px 4px;
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 角色槽网格 */
+.character-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100% - 20px);
+    gap: 1px;
+    background: #ddd;
+}
+
+/* 单个角色槽 */
+.character-mini-slot {
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.character-mini-slot:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+/* 空槽样式 */
+.character-mini-slot.empty {
+    background: #f8f9fa;
+    border: 1px dashed #ddd;
+}
+
+.character-mini-slot.empty::before {
+    content: "+";
+    font-size: 16px;
+    color: #999;
+    font-weight: bold;
+}
+
+/* 角色信息覆盖层 */
+.character-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    padding: 2px;
+    font-size: 8px;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.character-info-overlay .char-name {
+    font-weight: bold;
+    margin-bottom: 1px;
+}
+
+.character-info-overlay .weapon-name {
+    opacity: 0.9;
+}/* 修改队伍框样式 - 替换原有的 .team-box 样式 */
+.team-box {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid white;
+    border-radius: 8px;
+    transform: translate(-50%, -50%);
+    cursor: move;
+    user-select: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    z-index: 20;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.team-box:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.team-box.active {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.team-box.dragging {
+    transform: translate(-50%, -50%) scale(1.2);
+    z-index: 25;
+}
+
+/* 队伍名称 */
+.team-name {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    text-align: center;
+    padding: 2px 4px;
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 角色槽网格 */
+.character-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100% - 20px);
+    gap: 1px;
+    background: #ddd;
+}
+
+/* 单个角色槽 */
+.character-mini-slot {
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.character-mini-slot:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+/* 空槽样式 */
+.character-mini-slot.empty {
+    background: #f8f9fa;
+    border: 1px dashed #ddd;
+}
+
+.character-mini-slot.empty::before {
+    content: "+";
+    font-size: 16px;
+    color: #999;
+    font-weight: bold;
+}
+
+/* 角色信息覆盖层 */
+.character-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    padding: 2px;
+    font-size: 8px;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.character-info-overlay .char-name {
+    font-weight: bold;
+    margin-bottom: 1px;
+}
+
+.character-info-overlay .weapon-name {
+    opacity: 0.9;
 }
 
 .team-name-input {

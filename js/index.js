@@ -498,20 +498,75 @@ function renderTeams() {
         teamBox.style.left = team.x + 'px';
         teamBox.style.top = team.y + 'px';
         teamBox.dataset.index = index;
-        teamBox.textContent = team.name;
+
+        // 创建队伍名称
+        const teamName = document.createElement('div');
+        teamName.className = 'team-name';
+        teamName.textContent = team.name;
+
+        // 创建角色网格
+        const characterGrid = document.createElement('div');
+        characterGrid.className = 'character-grid';
+
+        // 创建4个角色槽
+        team.characters.forEach((char, charIndex) => {
+            const slot = document.createElement('div');
+            slot.className = 'character-mini-slot';
+            slot.dataset.teamIndex = index;
+            slot.dataset.slotIndex = charIndex;
+
+            if (char.character) {
+                // 有角色时设置背景图片
+                const imageName = char.character.name;
+                console.log(imageName);
+                
+                if (gameData.charactersImages[imageName]) {
+                    slot.style.backgroundImage = `url('${gameData.charactersImages[imageName]}')`;
+                }
+
+                // 创建信息覆盖层
+                const infoOverlay = document.createElement('div');
+                infoOverlay.className = 'character-info-overlay';
+                
+                const charName = document.createElement('div');
+                charName.className = 'char-name';
+                charName.textContent = char.character.name;
+                
+                const weaponName = document.createElement('div');
+                weaponName.className = 'weapon-name';
+                weaponName.textContent = char.weapon ? char.weapon.name : '无武器';
+                
+                infoOverlay.appendChild(charName);
+                infoOverlay.appendChild(weaponName);
+                slot.appendChild(infoOverlay);
+            } else {
+                slot.classList.add('empty');
+            }
+
+            // 点击槽位打开角色选择器
+            slot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectTeamForSlot(index, charIndex);
+            });
+
+            characterGrid.appendChild(slot);
+        });
+
+        teamBox.appendChild(teamName);
+        teamBox.appendChild(characterGrid);
 
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
         const dragThreshold = 5;
 
-        // 双击编辑名称
-        teamBox.addEventListener('dblclick', (e) => {
+        // 双击编辑名称（点击队伍名称区域）
+        teamName.addEventListener('dblclick', (e) => {
             e.stopPropagation();
             editTeamName(teamBox, index);
         });
 
-        // 拖拽开始
-        teamBox.addEventListener('mousedown', (e) => {
+        // 拖拽开始（只在队伍名称区域响应）
+        teamName.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
 
             e.stopPropagation();
@@ -543,23 +598,40 @@ function renderTeams() {
     });
 }
 
+function selectTeamForSlot(teamIndex, slotIndex) {
+    activeTeamIndex = teamIndex;
+    openCharacterSelector(slotIndex);
+}
+
 
 // 编辑队伍名称
 function editTeamName(teamBox, index) {
+    const teamNameEl = teamBox.querySelector('.team-name');
     const input = document.createElement('input');
     input.className = 'team-name-input';
     input.value = teams[index].name;
     input.maxLength = 10;
+    input.style.background = 'rgba(255, 255, 255, 0.9)';
+    input.style.color = '#333';
+    input.style.border = '1px solid #ccc';
+    input.style.borderRadius = '2px';
+    input.style.padding = '2px 4px';
+    input.style.fontSize = '10px';
+    input.style.textAlign = 'center';
+    input.style.width = '100%';
+    input.style.boxSizing = 'border-box';
 
-    teamBox.innerHTML = '';
-    teamBox.appendChild(input);
+    teamNameEl.innerHTML = '';
+    teamNameEl.appendChild(input);
     input.focus();
     input.select();
 
     function finishEdit() {
         const newName = input.value.trim() || `队伍${index + 1}`;
         teams[index].name = newName;
-        teamBox.textContent = newName;
+        teamNameEl.textContent = newName;
+        teamNameEl.style.background = '';
+        teamNameEl.style.color = '';
 
         // 更新详情面板
         if (activeTeamIndex === index) {
@@ -574,6 +646,7 @@ function editTeamName(teamBox, index) {
         }
     });
 }
+
 
 // 开始拖拽队伍
 function startDragTeam(e, index) {
@@ -639,6 +712,31 @@ function selectTeam(index) {
 
     activeTeamIndex = index;
     showTeamDetails(index);
+}
+
+function selectItem(item) {
+    const { type, teamIndex, slotIndex } = currentSelector;
+
+    if (type === 'character') {
+        teams[teamIndex].characters[slotIndex].character = item;
+        // 如果更换角色，清空武器
+        if (teams[teamIndex].characters[slotIndex].weapon) {
+            teams[teamIndex].characters[slotIndex].weapon = null;
+        }
+    } else if (type === 'weapon') {
+        teams[teamIndex].characters[slotIndex].weapon = item;
+    }
+
+    // 关闭选择器
+    document.getElementById('selectorModal').classList.remove('active');
+
+    // 更新显示
+    if (document.getElementById('teamDetailsPanel').classList.contains('active')) {
+        renderCharacterSlots(teams[teamIndex].characters);
+    }
+    
+    // 新增：更新队伍框显示
+    renderTeams();
 }
 
 // 显示队伍详情
